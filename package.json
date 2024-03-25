@@ -1,0 +1,16 @@
+{
+  "name": "serverless-fork-chinmay",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.3.0",
+    "form-data": "^4.0.0",
+    "mailgun.js": "^10.2.1"
+  }
+}

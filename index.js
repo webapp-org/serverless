@@ -3,25 +3,27 @@ import formData from "form-data";
 import Mailgun from "mailgun.js";
 
 cloudEvent("sendEmail", async (cloudEvent) => {
-  const messageData = JSON.parse(
+  const { email: recipientEmail, verificationLink } = JSON.parse(
     Buffer.from(cloudEvent.data.message.data, "base64").toString()
   );
 
   const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
   const MAILGUN_DOMAIN = "mail.chinmaygulhane.me";
-  const recipientEmail = messageData.email;
 
   const mailgun = new Mailgun(formData);
   const mg = mailgun.client({ username: "api", key: MAILGUN_API_KEY });
 
+  const emailSubject = "Please Verify Your Email Address";
+  const emailBody = `Thank you for registering. Please verify your email by clicking the link: ${verificationLink}`;
+
   mg.messages
     .create(MAILGUN_DOMAIN, {
-      from: "Excited User <mailgun@mail.chinmaygulhane.me>",
+      from: "Cloud Webapp <mailgun@mail.chinmaygulhane.me>",
       to: [recipientEmail],
-      subject: "Hello",
-      text: "Testing some Mailgun awesomeness!",
-      html: "<h1>Testing some Mailgun awesomeness!</h1>",
+      subject: emailSubject,
+      text: emailBody,
+      html: `<p>${emailBody}</p>`,
     })
-    .then((msg) => console.log(msg))
-    .catch((err) => console.log(err));
+    .then((msg) => console.log("Email sent successfully:", msg))
+    .catch((err) => console.log("Failed to send email:", err));
 });

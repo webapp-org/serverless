@@ -3,27 +3,28 @@ import formData from "form-data";
 import Mailgun from "mailgun.js";
 import { cloudEvent } from "@google-cloud/functions-framework";
 
-// Create a MySQL pool for database connections
-const pool = mysql.createPool({
-  connectionLimit: 10,
-  host: process.env.HOST,
-  user: process.env.USERNAME,
-  password: process.env.PASSWORD,
-  database: process.env.DATABASE,
-  port: process.env.DATABASE_PORT,
-});
+// Function to update the emailSent field in db
+const updateEmailSentStatus = async (email) => {
+  try {
+    const connection = await mysql.createConnection({
+      host: process.env.HOST,
+      user: process.env.USERNAME,
+      password: process.env.PASSWORD,
+      database: process.env.DATABASE,
+    });
+    console.log("Successfully connected to the database");
 
-// Function to update the emailSent field in your database
-const updateEmailSentStatus = (email, callback) => {
-  pool.query(
-    "UPDATE your_table_name SET emailSent = true WHERE email = ?",
-    [email],
-    (error, results) => {
-      if (error) throw error;
-      console.log("Database updated successfully:", results);
-      callback();
-    }
-  );
+    // SQL query to update the database
+    const [results] = await connection.execute(
+      "UPDATE Users SET emailSent = true WHERE username = ?",
+      [email]
+    );
+    console.log("Database updated successfully:", results);
+    // Close the database connection
+    await connection.end();
+  } catch (error) {
+    console.error("Failed to connect to the database:", error);
+  }
 };
 
 export const sendEmail = async (cloudEvent) => {
@@ -40,22 +41,20 @@ export const sendEmail = async (cloudEvent) => {
   const emailSubject = "Please Verify Your Email Address";
   const emailBody = `Thank you for registering. Please verify your email by clicking the link: ${verificationLink}`;
 
-  mg.messages
-    .create(MAILGUN_DOMAIN, {
+  try {
+    await mg.messages.create(MAILGUN_DOMAIN, {
       from: "Cloud Webapp <mailgun@mail.chinmaygulhane.me>",
       to: [recipientEmail],
       subject: emailSubject,
       text: emailBody,
       html: `<p>${emailBody}</p>`,
-    })
-    .then((msg) => {
-      console.log("Email sent successfully:", msg);
-      // Update the database once the email is sent
-      updateEmailSentStatus(recipientEmail, () =>
-        console.log("Email sent status updated in database.")
-      );
-    })
-    .catch((err) => console.log("Failed to send email:", err));
+    });
+    console.log("Email sent successfully");
+    // Update the database once the email is sent
+    await updateEmailSentStatus(recipientEmail);
+  } catch (err) {
+    console.log("Failed to send email or update the database:", err);
+  }
 };
 
 // Registering the Cloud Function

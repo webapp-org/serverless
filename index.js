@@ -13,13 +13,6 @@ const pool = mysql.createPool({
   port: process.env.DATABASE_PORT,
 });
 
-// Mailgun client setup
-const mailgun = new Mailgun(formData);
-const mg = mailgun.client({
-  username: "api",
-  key: process.env.MAILGUN_API_KEY,
-});
-
 // Function to update the emailSent field in your database
 const updateEmailSentStatus = (email, callback) => {
   pool.query(
@@ -33,17 +26,22 @@ const updateEmailSentStatus = (email, callback) => {
   );
 };
 
-// Cloud Function to send email and update database
-export const sendEmail = (cloudEvent) => {
+export const sendEmail = async (cloudEvent) => {
   const { email: recipientEmail, verificationLink } = JSON.parse(
     Buffer.from(cloudEvent.data.message.data, "base64").toString()
   );
+
+  const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
+  const MAILGUN_DOMAIN = "mail.chinmaygulhane.me";
+
+  const mailgun = new Mailgun(formData);
+  const mg = mailgun.client({ username: "api", key: MAILGUN_API_KEY });
 
   const emailSubject = "Please Verify Your Email Address";
   const emailBody = `Thank you for registering. Please verify your email by clicking the link: ${verificationLink}`;
 
   mg.messages
-    .create(process.env.VERIFICATION_DOMAIN, {
+    .create(MAILGUN_DOMAIN, {
       from: "Cloud Webapp <mailgun@mail.chinmaygulhane.me>",
       to: [recipientEmail],
       subject: emailSubject,

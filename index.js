@@ -2,7 +2,7 @@ import { cloudEvent } from "@google-cloud/functions-framework";
 import formData from "form-data";
 import Mailgun from "mailgun.js";
 
-cloudEvent("sendEmail", async (cloudEvent) => {
+export const sendEmail = async (cloudEvent) => {
   const { email: recipientEmail, verificationLink } = JSON.parse(
     Buffer.from(cloudEvent.data.message.data, "base64").toString()
   );
@@ -26,4 +26,6 @@ cloudEvent("sendEmail", async (cloudEvent) => {
     })
     .then((msg) => console.log("Email sent successfully:", msg))
     .catch((err) => console.log("Failed to send email:", err));
-});
+};
+
+cloudEvent("sendEmail", sendEmail);

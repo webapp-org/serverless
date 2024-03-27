@@ -3,8 +3,12 @@ import formData from "form-data";
 import Mailgun from "mailgun.js";
 import { cloudEvent } from "@google-cloud/functions-framework";
 
-// Function to update the emailSent field in db
-const updateEmailSentStatus = async (email) => {
+// Function to update db on email sent
+const updateEmailSentStatus = async (
+  email,
+  verificationTokenExpires,
+  emailSentTime
+) => {
   try {
     const connection = await mysql.createConnection({
       host: process.env.HOST,
@@ -14,10 +18,9 @@ const updateEmailSentStatus = async (email) => {
     });
     console.log("Successfully connected to the database");
 
-    // SQL query to update the database
     const [results] = await connection.execute(
-      "UPDATE Users SET emailSent = true WHERE username = ?",
-      [email]
+      "UPDATE Users SET emailSent = true, verificationTokenExpires = ?, emailSentTime = ? WHERE username = ?",
+      [verificationTokenExpires, emailSentTime, email]
     );
     console.log("Database updated successfully:", results);
     // Close the database connection
@@ -27,6 +30,7 @@ const updateEmailSentStatus = async (email) => {
   }
 };
 
+// send email function
 export const sendEmail = async (cloudEvent) => {
   const { email: recipientEmail, verificationLink } = JSON.parse(
     Buffer.from(cloudEvent.data.message.data, "base64").toString()
@@ -39,7 +43,10 @@ export const sendEmail = async (cloudEvent) => {
   const mg = mailgun.client({ username: "api", key: MAILGUN_API_KEY });
 
   const emailSubject = "Please Verify Your Email Address";
-  const emailBody = `Thank you for registering. Please verify your email by clicking the link: ${verificationLink}`;
+  const emailBody =
+    `
+    <p>Thank you for registering. Please verify your email by clicking the link below:</p>` +
+    `<a href="${verificationLink}" target="_blank">Verify Email</a>`;
 
   try {
     await mg.messages.create(MAILGUN_DOMAIN, {
@@ -50,12 +57,17 @@ export const sendEmail = async (cloudEvent) => {
       html: `<p>${emailBody}</p>`,
     });
     console.log("Email sent successfully");
+    const verificationTokenExpires = new Date(Date.now() + 120000);
+    const emailSentTime = new Date();
     // Update the database once the email is sent
-    await updateEmailSentStatus(recipientEmail);
+    await updateEmailSentStatus(
+      recipientEmail,
+      verificationTokenExpires,
+      emailSentTime
+    );
   } catch (err) {
     console.log("Failed to send email or update the database:", err);
   }
 };
 
-// Registering the Cloud Function
 cloudEvent("sendEmail", sendEmail);

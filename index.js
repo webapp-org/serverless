@@ -37,7 +37,8 @@ export const sendEmail = async (cloudEvent) => {
   );
 
   const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
-  const MAILGUN_DOMAIN = "mail.chinmaygulhane.me";
+  const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
+  const MAILGUN_SENDER_EMAIL = process.env.MAILGUN_SENDER_EMAIL;
 
   const mailgun = new Mailgun(formData);
   const mg = mailgun.client({ username: "api", key: MAILGUN_API_KEY });
@@ -50,7 +51,7 @@ export const sendEmail = async (cloudEvent) => {
 
   try {
     await mg.messages.create(MAILGUN_DOMAIN, {
-      from: "Cloud Webapp <mailgun@mail.chinmaygulhane.me>",
+      from: MAILGUN_SENDER_EMAIL,
       to: [recipientEmail],
       subject: emailSubject,
       text: emailBody,

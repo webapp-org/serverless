@@ -44,18 +44,25 @@ export const sendEmail = async (cloudEvent) => {
   const mg = mailgun.client({ username: "api", key: MAILGUN_API_KEY });
 
   const emailSubject = "Please Verify Your Email Address";
-  const emailBody =
-    `
-    <p>Thank you for registering. Please verify your email by clicking the link below:</p>` +
-    `<a href="${verificationLink}" target="_blank">Verify Email</a>`;
+  let emailBody =
+    "<html>" +
+    "<body>" +
+    "<h1>Welcome to Cloud Webapp !</h1>" +
+    "<p>Please click the following link to verify your email:</p>" +
+    '<a href="' +
+    verificationLink +
+    '">Verify Email</a>' +
+    "<h3>Thanks<h3>" +
+    "<p>Cloud Webapp Team </p>" +
+    "</body>" +
+    "</html>";
 
   try {
     await mg.messages.create(MAILGUN_DOMAIN, {
       from: MAILGUN_SENDER_EMAIL,
       to: [recipientEmail],
       subject: emailSubject,
-      text: emailBody,
-      html: `<p>${emailBody}</p>`,
+      html: emailBody,
     });
     console.log("Email sent successfully");
     const verificationTokenExpires = new Date(Date.now() + 120000);
